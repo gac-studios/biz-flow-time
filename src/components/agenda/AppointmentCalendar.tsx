@@ -1,10 +1,8 @@
 import { useRef, useCallback } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventInput, DateSelectArg, EventClickArg, DatesSetArg } from "@fullcalendar/core";
-import { format } from "date-fns";
 
 export interface CalendarAppointment {
   id: string;
@@ -82,18 +80,15 @@ const AppointmentCalendar = ({
     <div className={`agenda-calendar ${isLoading ? "opacity-50 pointer-events-none" : ""}`}>
       <FullCalendar
         ref={calRef}
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="timeGridWeek"
+        plugins={[dayGridPlugin, interactionPlugin]}
+        initialView="dayGridMonth"
         headerToolbar={{
           left: "prev,next today",
           center: "title",
-          right: "dayGridMonth,timeGridWeek,timeGridDay",
+          right: "",
         }}
         buttonText={{
           today: "Hoje",
-          month: "Mês",
-          week: "Semana",
-          day: "Dia",
         }}
         locale="pt-br"
         firstDay={0}
@@ -105,11 +100,6 @@ const AppointmentCalendar = ({
         eventClick={handleEventClick}
         datesSet={handleDatesSet}
         height="auto"
-        allDaySlot={false}
-        slotMinTime="06:00:00"
-        slotMaxTime="23:00:00"
-        slotDuration="00:30:00"
-        slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
         eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
         nowIndicator
         dayMaxEvents={3}

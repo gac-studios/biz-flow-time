@@ -254,7 +254,6 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email: string
           full_name: string
           id: string
           updated_at: string
@@ -262,7 +261,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          email?: string
           full_name?: string
           id?: string
           updated_at?: string
@@ -270,7 +268,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          email?: string
           full_name?: string
           id?: string
           updated_at?: string
@@ -312,6 +309,17 @@ export type Database = {
             }
             Returns: string
           }
+      get_company_members_secure: {
+        Args: never
+        Returns: {
+          active: boolean
+          email: string
+          full_name: string
+          membership_id: string
+          role: string
+          user_id: string
+        }[]
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {

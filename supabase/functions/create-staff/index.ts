@@ -79,7 +79,6 @@ Deno.serve(async (req) => {
     await serviceClient.from("profiles").insert({
       user_id: userId,
       full_name,
-      email,
     });
 
     await serviceClient.from("memberships").insert({

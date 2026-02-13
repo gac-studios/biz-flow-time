@@ -49,8 +49,8 @@ const Agenda = () => {
       const { data: mems } = await supabase.from("memberships").select("user_id").eq("company_id", companyId).eq("active", true);
       if (!mems || mems.length === 0) return [];
       const userIds = mems.map((m) => m.user_id);
-      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, email").in("user_id", userIds);
-      return (profiles || []).map((p) => ({ user_id: p.user_id, full_name: p.full_name || p.email }));
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+      return (profiles || []).map((p) => ({ user_id: p.user_id, full_name: p.full_name || p.user_id.slice(0, 8) }));
     },
     enabled: !!companyId && isOwner,
   });
@@ -69,8 +69,8 @@ const Agenda = () => {
       if (error) throw error;
       if (!data || data.length === 0) return [];
       const userIds = [...new Set(data.map((a) => a.created_by_user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, email").in("user_id", userIds);
-      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name || p.email]));
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name || "—"]));
       return data.map((a) => ({ ...a, creator_name: profileMap.get(a.created_by_user_id) || "—" })) as CalendarAppointment[];
     },
     enabled: !!companyId,

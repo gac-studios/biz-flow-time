@@ -11,52 +11,41 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const json = (body: object, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Missing or invalid Authorization header" }, 401);
     }
 
-    // Validate caller
-    const anonClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: claims, error: claimsErr } = await anonClient.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsErr || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const callerId = claims.claims.sub as string;
-
-    const { email, full_name, role_function } = await req.json();
-
-    if (!email || !full_name) {
-      return new Response(
-        JSON.stringify({ error: "email and full_name are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get caller's company and verify they're owner
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Validate caller via getUser (service role can verify any JWT)
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userErr } = await serviceClient.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+    const callerId = userData.user.id;
+
+    // Parse body
+    const { email, full_name, role_function } = await req.json();
+    if (!email || !full_name) {
+      return json({ error: "email and full_name are required" }, 400);
+    }
+
+    // Verify caller is owner
     const { data: callerMembership } = await serviceClient
       .from("memberships")
-      .select("company_id, role")
+      .select("company_id")
       .eq("user_id", callerId)
       .eq("active", true)
       .eq("role", "owner")
@@ -64,18 +53,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (!callerMembership) {
-      return new Response(
-        JSON.stringify({ error: "Only owners can create staff" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Only owners can create staff" }, 403);
     }
 
     const companyId = callerMembership.company_id;
-
-    // Generate a temporary password
     const tempPassword = crypto.randomUUID().slice(0, 12) + "A1!";
 
-    // Create the auth user
+    // Create auth user
     const { data: newUser, error: createErr } =
       await serviceClient.auth.admin.createUser({
         email,
@@ -85,22 +69,19 @@ Deno.serve(async (req) => {
       });
 
     if (createErr) {
-      return new Response(
-        JSON.stringify({ error: createErr.message }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const status = createErr.message?.toLowerCase().includes("already") ? 409 : 400;
+      return json({ error: createErr.message }, status);
     }
 
     const userId = newUser.user.id;
 
-    // Create profile
+    // Create profile + membership
     await serviceClient.from("profiles").insert({
       user_id: userId,
       full_name,
       email,
     });
 
-    // Create membership
     await serviceClient.from("memberships").insert({
       company_id: companyId,
       user_id: userId,
@@ -108,19 +89,12 @@ Deno.serve(async (req) => {
       invited_by: callerId,
     });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        user_id: userId,
-        message: `Staff member created. Temporary password: ${tempPassword}`,
-        temp_password: tempPassword,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({
+      success: true,
+      user_id: userId,
+      temp_password: tempPassword,
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: err.message || "Internal server error" }, 500);
   }
 });

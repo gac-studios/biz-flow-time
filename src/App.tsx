@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -28,25 +30,35 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<DashboardHome />} />
-            <Route path="agenda" element={<Agenda />} />
-            <Route path="clients" element={<Clients />} />
-            <Route path="services" element={<Services />} />
-            <Route path="staff" element={<Staff />} />
-            <Route path="locations" element={<Locations />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="plans" element={<PlansPage />} />
-            <Route path="audit" element={<AuditPage />} />
-          </Route>
-          <Route path="/c/:slug" element={<PublicBooking />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/onboarding" element={
+              <ProtectedRoute requireRole={false}>
+                <Onboarding />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<DashboardHome />} />
+              <Route path="agenda" element={<Agenda />} />
+              <Route path="clients" element={<Clients />} />
+              <Route path="services" element={<Services />} />
+              <Route path="staff" element={<Staff />} />
+              <Route path="locations" element={<Locations />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="plans" element={<PlansPage />} />
+              <Route path="audit" element={<AuditPage />} />
+            </Route>
+            <Route path="/c/:slug" element={<PublicBooking />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

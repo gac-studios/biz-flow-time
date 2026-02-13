@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Calendar, Users, Clock, Building2, Shield, BarChart3, ChevronRight, Check, Star, Zap } from "lucide-react";
-import heroBg from "@/assets/hero-bg.jpg";
 
 const features = [
   { icon: Calendar, title: "Agenda Inteligente", desc: "Visão dia, semana e mês com detecção de conflitos automática." },
@@ -71,7 +70,6 @@ const Landing = () => {
       {/* Hero */}
       <section className="relative pt-16 overflow-hidden">
         <div className="gradient-hero py-20 md:py-32 lg:py-40 relative">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }} />
           <div className="container mx-auto px-4 text-center relative z-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/20 border border-primary/30 px-4 py-1.5 text-sm text-primary-foreground/80 mb-6">
               <Zap className="h-4 w-4" />

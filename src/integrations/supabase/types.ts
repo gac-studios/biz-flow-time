@@ -16,9 +16,13 @@ export type Database = {
     Tables: {
       appointments: {
         Row: {
+          amount_cents: number | null
+          category: string | null
+          client_id: string | null
           company_id: string
           created_at: string
           created_by_user_id: string
+          currency: string
           end_datetime: string
           id: string
           notes: string | null
@@ -28,9 +32,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amount_cents?: number | null
+          category?: string | null
+          client_id?: string | null
           company_id: string
           created_at?: string
           created_by_user_id: string
+          currency?: string
           end_datetime: string
           id?: string
           notes?: string | null
@@ -40,9 +48,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amount_cents?: number | null
+          category?: string | null
+          client_id?: string | null
           company_id?: string
           created_at?: string
           created_by_user_id?: string
+          currency?: string
           end_datetime?: string
           id?: string
           notes?: string | null
@@ -52,6 +64,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "appointments_company_id_fkey"
             columns: ["company_id"]
@@ -98,6 +117,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"

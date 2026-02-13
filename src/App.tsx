@@ -18,6 +18,8 @@ import ProductivityPage from "./pages/dashboard/ProductivityPage";
 import AuditPage from "./pages/dashboard/AuditPage";
 import StaffAppointments from "./pages/staff/StaffAppointments";
 import StaffNewAppointment from "./pages/staff/StaffNewAppointment";
+import StaffReport from "./pages/staff/StaffReport";
+import Clients from "./pages/dashboard/Clients";
 import PublicBooking from "./pages/PublicBooking";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +47,7 @@ const App = () => (
               </ProtectedRoute>
             }>
               <Route index element={<Agenda />} />
+              <Route path="clients" element={<Clients />} />
               <Route path="staff" element={<Staff />} />
               <Route path="productivity" element={<ProductivityPage />} />
               <Route path="audit" element={<AuditPage />} />
@@ -57,6 +60,7 @@ const App = () => (
             }>
               <Route index element={<StaffAppointments />} />
               <Route path="new" element={<StaffNewAppointment />} />
+              <Route path="report" element={<StaffReport />} />
             </Route>
             <Route path="/c/:slug" element={<PublicBooking />} />
             <Route path="*" element={<NotFound />} />

@@ -13,6 +13,10 @@ export interface CalendarAppointment {
   notes: string | null;
   created_by_user_id: string;
   creator_name?: string;
+  amount_cents?: number | null;
+  currency?: string;
+  client_id?: string | null;
+  category?: string | null;
 }
 
 interface AppointmentCalendarProps {
@@ -51,6 +55,23 @@ const AppointmentCalendar = ({
       extendedProps: { appointment: a },
     };
   });
+
+  const renderEventContent = (eventInfo: any) => {
+    const appt = eventInfo.event.extendedProps.appointment as CalendarAppointment;
+    const timeText = eventInfo.timeText;
+    return (
+      <div className="leading-tight px-0.5 overflow-hidden">
+        <div className="text-[0.72rem] font-medium truncate">
+          {timeText} {appt.title}
+        </div>
+        {appt.creator_name && (
+          <div className="text-[0.65rem] font-bold opacity-80 truncate">
+            {appt.creator_name}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const handleDateSelect = useCallback(
     (info: DateSelectArg) => {
@@ -101,6 +122,7 @@ const AppointmentCalendar = ({
         datesSet={handleDatesSet}
         height="auto"
         eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+        eventContent={renderEventContent}
         nowIndicator
         dayMaxEvents={3}
         eventDisplay="block"

@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CalendarAppointment } from "./AppointmentCalendar";
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" }> = {
@@ -32,7 +32,7 @@ interface AppointmentDialogProps {
   queryKeyPrefix: string;
 }
 
-const emptyForm = { title: "", date: "", startTime: "", endTime: "", status: "scheduled", notes: "" };
+const emptyForm = { title: "", date: "", startTime: "", endTime: "", status: "scheduled", notes: "", amountCents: "", category: "", clientId: "" };
 
 const AppointmentDialog = ({
   open,
@@ -52,6 +52,17 @@ const AppointmentDialog = ({
   const isEditing = !!appointment;
   const isOwner = mode === "owner";
 
+  // Fetch clients for owner selector
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients-select", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data } = await supabase.from("clients").select("id, name").eq("company_id", companyId).order("name");
+      return data || [];
+    },
+    enabled: !!companyId && isOwner,
+  });
+
   useEffect(() => {
     if (appointment) {
       setForm({
@@ -61,6 +72,9 @@ const AppointmentDialog = ({
         endTime: format(new Date(appointment.end_datetime), "HH:mm"),
         status: appointment.status,
         notes: appointment.notes || "",
+        amountCents: appointment.amount_cents ? String(appointment.amount_cents / 100) : "",
+        category: appointment.category || "",
+        clientId: appointment.client_id || "",
       });
     } else if (prefillStart) {
       const end = prefillEnd || new Date(prefillStart.getTime() + 30 * 60000);
@@ -105,10 +119,26 @@ const AppointmentDialog = ({
     const startDatetime = `${form.date}T${form.startTime}:00`;
     const endDatetime = `${form.date}T${form.endTime}:00`;
 
+    const parsedAmount = form.amountCents ? Math.round(parseFloat(form.amountCents.replace(",", ".")) * 100) : null;
+
     if (isEditing && appointment) {
       const updatePayload = isOwner
-        ? { title: form.title, start_datetime: startDatetime, end_datetime: endDatetime, status: form.status, notes: form.notes || null }
-        : { status: form.status, notes: form.notes || null };
+        ? {
+            title: form.title,
+            start_datetime: startDatetime,
+            end_datetime: endDatetime,
+            status: form.status,
+            notes: form.notes || null,
+            amount_cents: parsedAmount,
+            category: form.category || null,
+            client_id: form.clientId || null,
+          }
+        : {
+            status: form.status,
+            notes: form.notes || null,
+            amount_cents: parsedAmount,
+            category: form.category || null,
+          };
 
       const { error } = await supabase.from("appointments").update(updatePayload).eq("id", appointment.id);
       if (error) {
@@ -126,6 +156,9 @@ const AppointmentDialog = ({
         end_datetime: endDatetime,
         status: form.status,
         notes: form.notes || null,
+        amount_cents: parsedAmount,
+        category: form.category || null,
+        client_id: form.clientId || null,
       });
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -154,7 +187,7 @@ const AppointmentDialog = ({
   const canEditField = (field: string) => {
     if (!isEditing) return true;
     if (isOwner) return true;
-    return field === "status" || field === "notes";
+    return ["status", "notes", "amountCents", "category"].includes(field);
   };
 
   return (
@@ -222,6 +255,44 @@ const AppointmentDialog = ({
               </SelectContent>
             </Select>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input
+                placeholder="0,00"
+                value={form.amountCents}
+                onChange={(e) => setForm({ ...form, amountCents: e.target.value })}
+                disabled={!canEditField("amountCents")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Input
+                placeholder="Ex: Corte, Consulta…"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                disabled={!canEditField("category")}
+              />
+            </div>
+          </div>
+          {isOwner && (
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select
+                value={form.clientId || "none"}
+                onValueChange={(v) => setForm({ ...form, clientId: v === "none" ? "" : v })}
+                disabled={!canEditField("clientId")}
+              >
+                <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Observações</Label>
             <Textarea

@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
-import { Calendar, LogOut, Menu, Plus } from "lucide-react";
+import { Calendar, LogOut, Menu, Plus, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 const navItems = [
   { path: "/staff", label: "Agenda", icon: Calendar },
   { path: "/staff/new", label: "Marcar Horário", icon: Plus },
+  { path: "/staff/report", label: "Relatório", icon: BarChart3 },
 ];
 
 const StaffSidebar = ({ pathname, onNavigate, onLogout }: { pathname: string; onNavigate?: () => void; onLogout: () => void }) => (

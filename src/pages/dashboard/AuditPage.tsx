@@ -39,9 +39,9 @@ const AuditPage = () => {
       const userIds = [...new Set(data.map((l) => l.actor_user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email")
+        .select("user_id, full_name")
         .in("user_id", userIds);
-      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name || p.email]));
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name || p.user_id.slice(0, 8)]));
 
       return data.map((l) => ({
         ...l,

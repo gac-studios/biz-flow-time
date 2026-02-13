@@ -35,10 +35,10 @@ const ProductivityPage = () => {
 
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email")
+        .select("user_id, full_name")
         .in("user_id", userIds);
 
-      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name || p.email]));
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name || p.user_id.slice(0, 8)]));
 
       const stats = new Map<string, { name: string; total: number; done: number; canceled: number }>();
       for (const a of appts || []) {

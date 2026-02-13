@@ -98,7 +98,6 @@ const Onboarding = () => {
       await supabase.from("profiles").upsert({
         user_id: user.id,
         full_name: user.user_metadata?.full_name || data.companyName,
-        email: user.email || "",
       }, { onConflict: "user_id" });
     }
 

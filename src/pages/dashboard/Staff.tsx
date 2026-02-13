@@ -15,12 +15,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 interface StaffMember {
-  id: string;
+  membership_id: string;
   user_id: string;
   role: string;
   active: boolean;
-  created_at: string;
-  profile: { full_name: string; email: string } | null;
+  full_name: string | null;
+  email: string | null;
 }
 
 const Staff = () => {
@@ -41,30 +41,18 @@ const Staff = () => {
     queryKey: ["staff-members", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      const { data, error } = await supabase
-        .from("memberships")
-        .select("id, user_id, role, active, created_at")
-        .eq("company_id", companyId)
-        .eq("role", "staff");
-
+      const { data, error } = await supabase.rpc("get_company_members_secure");
       if (error) throw error;
-      if (!data || data.length === 0) return [];
-
-      // Fetch profiles for these users
-      const userIds = data.map((m) => m.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, email")
-        .in("user_id", userIds);
-
-      const profileMap = new Map(
-        (profiles || []).map((p) => [p.user_id, p])
-      );
-
-      return data.map((m) => ({
-        ...m,
-        profile: profileMap.get(m.user_id) || null,
-      })) as StaffMember[];
+      return ((data as any[]) || [])
+        .filter((m: any) => m.role === "staff")
+        .map((m: any) => ({
+          membership_id: m.membership_id,
+          user_id: m.user_id,
+          role: m.role,
+          active: m.active,
+          full_name: m.full_name,
+          email: m.email,
+        })) as StaffMember[];
     },
     enabled: !!companyId,
   });
@@ -97,11 +85,11 @@ const Staff = () => {
   });
 
   const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+    mutationFn: async ({ membership_id, active }: { membership_id: string; active: boolean }) => {
       const { error } = await supabase
         .from("memberships")
         .update({ active })
-        .eq("id", id);
+        .eq("id", membership_id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -114,11 +102,11 @@ const Staff = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (membership_id: string) => {
       const { error } = await supabase
         .from("memberships")
         .delete()
-        .eq("id", id);
+        .eq("id", membership_id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -132,7 +120,7 @@ const Staff = () => {
 
   const handleEdit = (member: StaffMember) => {
     setEditingMember(member);
-    setEditName(member.profile?.full_name || "");
+    setEditName(member.full_name || "");
     setEditActive(member.active);
     setEditOpen(true);
   };
@@ -141,7 +129,7 @@ const Staff = () => {
     if (!editingMember) return;
 
     // Update profile name
-    if (editName !== editingMember.profile?.full_name) {
+    if (editName !== editingMember.full_name) {
       await supabase
         .from("profiles")
         .update({ full_name: editName })
@@ -153,7 +141,7 @@ const Staff = () => {
       await supabase
         .from("memberships")
         .update({ active: editActive })
-        .eq("id", editingMember.id);
+        .eq("id", editingMember.membership_id);
     }
 
     queryClient.invalidateQueries({ queryKey: ["staff-members"] });
@@ -253,13 +241,13 @@ const Staff = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {members.map((m) => (
-                  <TableRow key={m.id}>
+              {members.map((m) => (
+                  <TableRow key={m.membership_id}>
                     <TableCell className="font-medium">
-                      {m.profile?.full_name || "—"}
+                      {m.full_name || "—"}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground">
-                      {m.profile?.email || "—"}
+                      {m.email || "—"}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant={m.active ? "default" : "secondary"}>
@@ -281,13 +269,13 @@ const Staff = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Remover colaborador?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Esta ação removerá o acesso de {m.profile?.full_name || "este colaborador"} à empresa. Essa ação não pode ser desfeita.
+                                Esta ação removerá o acesso de {m.full_name || "este colaborador"} à empresa. Essa ação não pode ser desfeita.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => deleteMutation.mutate(m.id)}
+                                onClick={() => deleteMutation.mutate(m.membership_id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
                                 Remover

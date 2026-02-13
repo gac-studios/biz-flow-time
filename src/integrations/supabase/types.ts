@@ -61,11 +61,15 @@ export type Database = {
       companies: {
         Row: {
           city: string | null
+          cnpj: string
           created_at: string
           default_interval_minutes: number | null
           id: string
+          inscricao_estadual: string | null
           name: string
+          nome_fantasia: string | null
           phone: string | null
+          razao_social: string
           segment: string | null
           slug: string | null
           state: string | null
@@ -74,11 +78,15 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          cnpj: string
           created_at?: string
           default_interval_minutes?: number | null
           id?: string
+          inscricao_estadual?: string | null
           name: string
+          nome_fantasia?: string | null
           phone?: string | null
+          razao_social: string
           segment?: string | null
           slug?: string | null
           state?: string | null
@@ -87,11 +95,15 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          cnpj?: string
           created_at?: string
           default_interval_minutes?: number | null
           id?: string
+          inscricao_estadual?: string | null
           name?: string
+          nome_fantasia?: string | null
           phone?: string | null
+          razao_social?: string
           segment?: string | null
           slug?: string | null
           state?: string | null
@@ -143,18 +155,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_company_with_owner: {
-        Args: {
-          _city?: string
-          _name: string
-          _phone?: string
-          _segment?: string
-          _slug?: string
-          _state?: string
-          _timezone?: string
-        }
-        Returns: string
-      }
+      create_company_with_owner:
+        | {
+            Args: {
+              _city?: string
+              _name: string
+              _phone?: string
+              _segment?: string
+              _slug?: string
+              _state?: string
+              _timezone?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _city?: string
+              _cnpj?: string
+              _inscricao_estadual?: string
+              _name: string
+              _nome_fantasia?: string
+              _phone?: string
+              _razao_social?: string
+              _segment?: string
+              _slug?: string
+              _state?: string
+              _timezone?: string
+            }
+            Returns: string
+          }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {

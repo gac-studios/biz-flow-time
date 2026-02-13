@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Calendar, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { isValidCnpj, formatCnpj, stripCnpj } from "@/lib/cnpj";
 
 const segments = ["Barbearia", "Estética", "Clínica", "Consultório", "Transporte", "Academia", "Outro"];
 const timezones = ["America/Sao_Paulo", "America/Manaus", "America/Bahia", "America/Fortaleza", "America/Recife"];
@@ -16,12 +17,48 @@ const timezones = ["America/Sao_Paulo", "America/Manaus", "America/Bahia", "Amer
 const Onboarding = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [cnpjError, setCnpjError] = useState("");
   const [data, setData] = useState({
-    companyName: "", segment: "", phone: "", city: "", state: "", timezone: "America/Sao_Paulo", slug: "",
+    companyName: "",
+    segment: "",
+    phone: "",
+    city: "",
+    state: "",
+    timezone: "America/Sao_Paulo",
+    slug: "",
+    cnpj: "",
+    razaoSocial: "",
+    nomeFantasia: "",
+    inscricaoEstadual: "",
   });
+
+  // If user already has a role (owner), redirect to dashboard
+  useEffect(() => {
+    if (role === "owner") {
+      navigate("/dashboard", { replace: true });
+    } else if (role === "staff") {
+      navigate("/staff", { replace: true });
+    }
+  }, [role, navigate]);
+
+  const handleCnpjChange = (value: string) => {
+    const formatted = formatCnpj(value);
+    setData({ ...data, cnpj: formatted });
+    const digits = stripCnpj(formatted);
+    if (digits.length === 14) {
+      setCnpjError(isValidCnpj(digits) ? "" : "CNPJ inválido. Verifique os dígitos.");
+    } else {
+      setCnpjError("");
+    }
+  };
+
+  const canAdvanceStep0 = () => {
+    const digits = stripCnpj(data.cnpj);
+    return data.companyName.trim() !== "" && data.razaoSocial.trim() !== "" && digits.length === 14 && isValidCnpj(digits);
+  };
 
   const handleCreate = async () => {
     if (!user) {
@@ -29,8 +66,14 @@ const Onboarding = () => {
       return;
     }
 
+    const cnpjDigits = stripCnpj(data.cnpj);
+    if (!isValidCnpj(cnpjDigits)) {
+      toast({ title: "CNPJ inválido", description: "Verifique o CNPJ informado.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
-    const { data: result, error } = await supabase.rpc("create_company_with_owner", {
+    const { error } = await supabase.rpc("create_company_with_owner", {
       _name: data.companyName,
       _slug: data.slug || null,
       _phone: data.phone || null,
@@ -38,6 +81,10 @@ const Onboarding = () => {
       _city: data.city || null,
       _state: data.state || null,
       _timezone: data.timezone,
+      _cnpj: cnpjDigits,
+      _razao_social: data.razaoSocial,
+      _nome_fantasia: data.nomeFantasia || null,
+      _inscricao_estadual: data.inscricaoEstadual || null,
     });
 
     if (error) {
@@ -47,8 +94,7 @@ const Onboarding = () => {
     }
 
     toast({ title: "Empresa criada!", description: "Bem-vindo ao AgendaPro." });
-    // Small delay to let auth context refresh membership
-    setTimeout(() => navigate("/dashboard"), 500);
+    navigate("/dashboard", { replace: true });
   };
 
   return (
@@ -70,8 +116,46 @@ const Onboarding = () => {
           {step === 0 && (
             <div className="space-y-4 animate-fade-in">
               <div className="space-y-2">
-                <Label>Nome da empresa</Label>
-                <Input placeholder="Ex: Barbearia Premium" value={data.companyName} onChange={(e) => setData({ ...data, companyName: e.target.value })} />
+                <Label>CNPJ <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="00.000.000/0000-00"
+                  value={data.cnpj}
+                  onChange={(e) => handleCnpjChange(e.target.value)}
+                  maxLength={18}
+                />
+                {cnpjError && <p className="text-sm text-destructive">{cnpjError}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label>Razão Social <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="Razão social da empresa"
+                  value={data.razaoSocial}
+                  onChange={(e) => setData({ ...data, razaoSocial: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nome Fantasia</Label>
+                <Input
+                  placeholder="Nome fantasia (opcional)"
+                  value={data.nomeFantasia}
+                  onChange={(e) => setData({ ...data, nomeFantasia: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Inscrição Estadual</Label>
+                <Input
+                  placeholder="Inscrição estadual (opcional)"
+                  value={data.inscricaoEstadual}
+                  onChange={(e) => setData({ ...data, inscricaoEstadual: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nome da empresa <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="Ex: Barbearia Premium"
+                  value={data.companyName}
+                  onChange={(e) => setData({ ...data, companyName: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Segmento</Label>
@@ -118,6 +202,8 @@ const Onboarding = () => {
               </div>
               <div className="bg-muted/50 rounded-xl p-4 space-y-2">
                 <h4 className="font-heading font-semibold text-sm">Resumo</h4>
+                <p className="text-sm"><span className="text-muted-foreground">CNPJ:</span> {data.cnpj || "—"}</p>
+                <p className="text-sm"><span className="text-muted-foreground">Razão Social:</span> {data.razaoSocial || "—"}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Empresa:</span> {data.companyName || "—"}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Segmento:</span> {data.segment || "—"}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Local:</span> {data.city || "—"}{data.state ? `, ${data.state}` : ""}</p>
@@ -130,7 +216,9 @@ const Onboarding = () => {
               <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
             </Button>
             {step < 2 ? (
-              <Button onClick={() => setStep(step + 1)}>Próximo <ChevronRight className="ml-1 h-4 w-4" /></Button>
+              <Button onClick={() => setStep(step + 1)} disabled={step === 0 && !canAdvanceStep0()}>
+                Próximo <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
             ) : (
               <Button onClick={handleCreate} disabled={loading || !data.companyName}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

@@ -143,6 +143,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_company_with_owner: {
+        Args: {
+          _city?: string
+          _name: string
+          _phone?: string
+          _segment?: string
+          _slug?: string
+          _state?: string
+          _timezone?: string
+        }
+        Returns: string
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {

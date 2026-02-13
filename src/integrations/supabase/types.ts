@@ -17,48 +17,78 @@ export type Database = {
       appointments: {
         Row: {
           amount_cents: number | null
+          canceled_at: string | null
           category: string | null
           client_id: string | null
           company_id: string
+          completed_at: string | null
+          confirmed_at: string | null
           created_at: string
           created_by_user_id: string
           currency: string
           end_datetime: string
           id: string
+          no_show_at: string | null
           notes: string | null
+          paid_at: string | null
+          paid_cents: number | null
+          payment_method: string | null
+          payment_status: string
+          price_cents: number | null
           start_datetime: string
+          started_at: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
           amount_cents?: number | null
+          canceled_at?: string | null
           category?: string | null
           client_id?: string | null
           company_id: string
+          completed_at?: string | null
+          confirmed_at?: string | null
           created_at?: string
           created_by_user_id: string
           currency?: string
           end_datetime: string
           id?: string
+          no_show_at?: string | null
           notes?: string | null
+          paid_at?: string | null
+          paid_cents?: number | null
+          payment_method?: string | null
+          payment_status?: string
+          price_cents?: number | null
           start_datetime: string
+          started_at?: string | null
           status?: string
           title?: string
           updated_at?: string
         }
         Update: {
           amount_cents?: number | null
+          canceled_at?: string | null
           category?: string | null
           client_id?: string | null
           company_id?: string
+          completed_at?: string | null
+          confirmed_at?: string | null
           created_at?: string
           created_by_user_id?: string
           currency?: string
           end_datetime?: string
           id?: string
+          no_show_at?: string | null
           notes?: string | null
+          paid_at?: string | null
+          paid_cents?: number | null
+          payment_method?: string | null
+          payment_status?: string
+          price_cents?: number | null
           start_datetime?: string
+          started_at?: string | null
           status?: string
           title?: string
           updated_at?: string

@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -13,13 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { allStatuses, paymentStatusMap } from "@/lib/statuses";
 import type { CalendarAppointment } from "./AppointmentCalendar";
-
-const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" }> = {
-  scheduled: { label: "Agendado", variant: "default" },
-  done: { label: "Concluído", variant: "secondary" },
-  canceled: { label: "Cancelado", variant: "destructive" },
-};
 
 interface AppointmentDialogProps {
   open: boolean;
@@ -27,22 +21,17 @@ interface AppointmentDialogProps {
   appointment: CalendarAppointment | null;
   prefillStart?: Date | null;
   prefillEnd?: Date | null;
-  /** owner can edit all + delete; staff can edit notes/status only */
   mode: "owner" | "staff";
   queryKeyPrefix: string;
 }
 
-const emptyForm = { title: "", date: "", startTime: "", endTime: "", status: "scheduled", notes: "", amountCents: "", category: "", clientId: "" };
+const emptyForm = {
+  title: "", date: "", startTime: "", endTime: "", status: "scheduled",
+  notes: "", priceCents: "", paidCents: "", paymentStatus: "pending",
+  paymentMethod: "", category: "", clientId: "",
+};
 
-const AppointmentDialog = ({
-  open,
-  onOpenChange,
-  appointment,
-  prefillStart,
-  prefillEnd,
-  mode,
-  queryKeyPrefix,
-}: AppointmentDialogProps) => {
+const AppointmentDialog = ({ open, onOpenChange, appointment, prefillStart, prefillEnd, mode, queryKeyPrefix }: AppointmentDialogProps) => {
   const { companyId, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -52,7 +41,6 @@ const AppointmentDialog = ({
   const isEditing = !!appointment;
   const isOwner = mode === "owner";
 
-  // Fetch clients for owner selector
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-select", companyId],
     queryFn: async () => {
@@ -65,25 +53,24 @@ const AppointmentDialog = ({
 
   useEffect(() => {
     if (appointment) {
+      const a = appointment as any;
       setForm({
-        title: appointment.title,
-        date: format(new Date(appointment.start_datetime), "yyyy-MM-dd"),
-        startTime: format(new Date(appointment.start_datetime), "HH:mm"),
-        endTime: format(new Date(appointment.end_datetime), "HH:mm"),
-        status: appointment.status,
-        notes: appointment.notes || "",
-        amountCents: appointment.amount_cents ? String(appointment.amount_cents / 100) : "",
-        category: appointment.category || "",
-        clientId: appointment.client_id || "",
+        title: a.title,
+        date: format(new Date(a.start_datetime), "yyyy-MM-dd"),
+        startTime: format(new Date(a.start_datetime), "HH:mm"),
+        endTime: format(new Date(a.end_datetime), "HH:mm"),
+        status: a.status,
+        notes: a.notes || "",
+        priceCents: a.price_cents ? String(a.price_cents / 100) : (a.amount_cents ? String(a.amount_cents / 100) : ""),
+        paidCents: a.paid_cents ? String(a.paid_cents / 100) : "",
+        paymentStatus: a.payment_status || "pending",
+        paymentMethod: a.payment_method || "",
+        category: a.category || "",
+        clientId: a.client_id || "",
       });
     } else if (prefillStart) {
       const end = prefillEnd || new Date(prefillStart.getTime() + 30 * 60000);
-      setForm({
-        ...emptyForm,
-        date: format(prefillStart, "yyyy-MM-dd"),
-        startTime: format(prefillStart, "HH:mm"),
-        endTime: format(end, "HH:mm"),
-      });
+      setForm({ ...emptyForm, date: format(prefillStart, "yyyy-MM-dd"), startTime: format(prefillStart, "HH:mm"), endTime: format(end, "HH:mm") });
     } else {
       setForm(emptyForm);
     }
@@ -94,16 +81,14 @@ const AppointmentDialog = ({
     const startDt = `${form.date}T${form.startTime}:00`;
     const endDt = `${form.date}T${form.endTime}:00`;
     const { data } = await supabase
-      .from("appointments")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("created_by_user_id", user.id)
-      .neq("status", "canceled")
-      .lt("start_datetime", endDt)
-      .gt("end_datetime", startDt);
+      .from("appointments").select("id")
+      .eq("company_id", companyId).eq("created_by_user_id", user.id)
+      .neq("status", "canceled").lt("start_datetime", endDt).gt("end_datetime", startDt);
     const overlaps = (data || []).filter((r) => r.id !== appointment?.id);
     return overlaps.length > 0;
   };
+
+  const parseCents = (v: string) => v ? Math.round(parseFloat(v.replace(",", ".")) * 100) : null;
 
   const handleSave = async () => {
     if (!companyId || !user || !form.title || !form.date || !form.startTime || !form.endTime) return;
@@ -119,52 +104,33 @@ const AppointmentDialog = ({
     const startDatetime = `${form.date}T${form.startTime}:00`;
     const endDatetime = `${form.date}T${form.endTime}:00`;
 
-    const parsedAmount = form.amountCents ? Math.round(parseFloat(form.amountCents.replace(",", ".")) * 100) : null;
-
     if (isEditing && appointment) {
       const updatePayload = isOwner
         ? {
-            title: form.title,
-            start_datetime: startDatetime,
-            end_datetime: endDatetime,
-            status: form.status,
-            notes: form.notes || null,
-            amount_cents: parsedAmount,
-            category: form.category || null,
-            client_id: form.clientId || null,
+            title: form.title, start_datetime: startDatetime, end_datetime: endDatetime,
+            status: form.status, notes: form.notes || null,
+            price_cents: parseCents(form.priceCents), paid_cents: parseCents(form.paidCents),
+            payment_status: form.paymentStatus, payment_method: form.paymentMethod || null,
+            category: form.category || null, client_id: form.clientId || null,
           }
         : {
-            status: form.status,
-            notes: form.notes || null,
-            amount_cents: parsedAmount,
-            category: form.category || null,
+            status: form.status, notes: form.notes || null,
+            price_cents: parseCents(form.priceCents), category: form.category || null,
           };
 
       const { error } = await supabase.from("appointments").update(updatePayload).eq("id", appointment.id);
-      if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-        setSaving(false);
-        return;
-      }
+      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); setSaving(false); return; }
       toast({ title: "Agendamento atualizado" });
     } else {
       const { error } = await supabase.from("appointments").insert({
-        company_id: companyId,
-        created_by_user_id: user.id,
-        title: form.title,
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
-        status: form.status,
-        notes: form.notes || null,
-        amount_cents: parsedAmount,
-        category: form.category || null,
-        client_id: form.clientId || null,
+        company_id: companyId, created_by_user_id: user.id,
+        title: form.title, start_datetime: startDatetime, end_datetime: endDatetime,
+        status: form.status, notes: form.notes || null,
+        price_cents: parseCents(form.priceCents), paid_cents: parseCents(form.paidCents),
+        payment_status: form.paymentStatus, payment_method: form.paymentMethod || null,
+        category: form.category || null, client_id: form.clientId || null,
       });
-      if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-        setSaving(false);
-        return;
-      }
+      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); setSaving(false); return; }
       toast({ title: "Agendamento criado" });
     }
     setSaving(false);
@@ -175,10 +141,7 @@ const AppointmentDialog = ({
   const handleDelete = async () => {
     if (!appointment) return;
     const { error } = await supabase.from("appointments").delete().eq("id", appointment.id);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-      return;
-    }
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Agendamento removido" });
     onOpenChange(false);
     queryClient.invalidateQueries({ queryKey: [queryKeyPrefix] });
@@ -187,12 +150,12 @@ const AppointmentDialog = ({
   const canEditField = (field: string) => {
     if (!isEditing) return true;
     if (isOwner) return true;
-    return ["status", "notes", "amountCents", "category"].includes(field);
+    return ["status", "notes", "priceCents", "category"].includes(field);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading">
             {isEditing ? "Detalhes do agendamento" : "Novo agendamento"}
@@ -204,85 +167,68 @@ const AppointmentDialog = ({
           )}
           <div className="space-y-2">
             <Label>Título <span className="text-destructive">*</span></Label>
-            <Input
-              placeholder="Ex: Reunião, Corte, Consulta…"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              disabled={!canEditField("title")}
-            />
+            <Input placeholder="Ex: Reunião, Corte, Consulta…" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} disabled={!canEditField("title")} />
           </div>
           <div className="space-y-2">
             <Label>Data <span className="text-destructive">*</span></Label>
-            <Input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              disabled={!canEditField("date")}
-            />
+            <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} disabled={!canEditField("date")} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Início <span className="text-destructive">*</span></Label>
-              <Input
-                type="time"
-                value={form.startTime}
-                onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                disabled={!canEditField("startTime")}
-              />
+              <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} disabled={!canEditField("startTime")} />
             </div>
             <div className="space-y-2">
               <Label>Fim <span className="text-destructive">*</span></Label>
-              <Input
-                type="time"
-                value={form.endTime}
-                onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                disabled={!canEditField("endTime")}
-              />
+              <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} disabled={!canEditField("endTime")} />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Status</Label>
-            <Select
-              value={form.status}
-              onValueChange={(v) => setForm({ ...form, status: v })}
-              disabled={!canEditField("status")}
-            >
+            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })} disabled={!canEditField("status")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="scheduled">Agendado</SelectItem>
-                <SelectItem value="done">Concluído</SelectItem>
-                <SelectItem value="canceled">Cancelado</SelectItem>
+                {allStatuses.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Financial fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Valor (R$)</Label>
-              <Input
-                placeholder="0,00"
-                value={form.amountCents}
-                onChange={(e) => setForm({ ...form, amountCents: e.target.value })}
-                disabled={!canEditField("amountCents")}
-              />
+              <Input placeholder="0,00" value={form.priceCents} onChange={(e) => setForm({ ...form, priceCents: e.target.value })} disabled={!canEditField("priceCents")} />
+            </div>
+            {isOwner && (
+              <div className="space-y-2">
+                <Label>Recebido (R$)</Label>
+                <Input placeholder="0,00" value={form.paidCents} onChange={(e) => setForm({ ...form, paidCents: e.target.value })} disabled={!canEditField("paidCents")} />
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Pagamento</Label>
+              <Select value={form.paymentStatus} onValueChange={(v) => setForm({ ...form, paymentStatus: v })} disabled={!isOwner && isEditing}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(paymentStatusMap).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Categoria</Label>
-              <Input
-                placeholder="Ex: Corte, Consulta…"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                disabled={!canEditField("category")}
-              />
+              <Input placeholder="Ex: Corte, Consulta…" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} disabled={!canEditField("category")} />
             </div>
           </div>
           {isOwner && (
             <div className="space-y-2">
               <Label>Cliente</Label>
-              <Select
-                value={form.clientId || "none"}
-                onValueChange={(v) => setForm({ ...form, clientId: v === "none" ? "" : v })}
-                disabled={!canEditField("clientId")}
-              >
+              <Select value={form.clientId || "none"} onValueChange={(v) => setForm({ ...form, clientId: v === "none" ? "" : v })} disabled={!canEditField("clientId")}>
                 <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhum</SelectItem>
@@ -295,21 +241,14 @@ const AppointmentDialog = ({
           )}
           <div className="space-y-2">
             <Label>Observações</Label>
-            <Textarea
-              placeholder="Notas opcionais…"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              disabled={!canEditField("notes")}
-            />
+            <Textarea placeholder="Notas opcionais…" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} disabled={!canEditField("notes")} />
           </div>
         </div>
         <DialogFooter className="flex items-center gap-2">
           {isEditing && isOwner && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="mr-auto">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <Button variant="ghost" size="icon" className="mr-auto"><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -324,10 +263,7 @@ const AppointmentDialog = ({
             </AlertDialog>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || !form.title || !form.date || !form.startTime || !form.endTime}
-          >
+          <Button onClick={handleSave} disabled={saving || !form.title || !form.date || !form.startTime || !form.endTime}>
             {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             {isEditing ? "Salvar" : "Criar"}
           </Button>

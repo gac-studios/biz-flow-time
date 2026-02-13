@@ -60,9 +60,13 @@ const Landing = () => {
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Preços</a>
             <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild><Link to="/login">Entrar</Link></Button>
-            <Button asChild><Link to="/signup">Criar conta</Link></Button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button variant="outline" asChild aria-label="Entrar na sua conta">
+              <Link to="/login">Entrar</Link>
+            </Button>
+            <Button asChild aria-label="Cadastrar minha empresa">
+              <Link to="/signup">Cadastrar minha empresa <ChevronRight className="ml-1 h-4 w-4" /></Link>
+            </Button>
           </div>
         </div>
       </nav>
@@ -82,12 +86,6 @@ const Landing = () => {
             <p className="text-lg md:text-xl text-primary-foreground/70 max-w-2xl mx-auto mb-10">
               Barbearias, clínicas, estéticas, transporte e muito mais. Configure sua agenda em minutos e comece a receber agendamentos online.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" variant="accent" asChild>
-                <Link to="/signup">Começar grátis <ChevronRight className="ml-1 h-5 w-5" /></Link>
-              </Button>
-              <Button size="lg" variant="heroOutline">Ver demonstração</Button>
-            </div>
           </div>
         </div>
       </section>

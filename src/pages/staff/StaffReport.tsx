@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, CalendarCheck, CalendarX, DollarSign, TrendingUp } from "lucide-react";
+import { Loader2, CalendarCheck, CalendarX, DollarSign, TrendingUp, UserX } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatCurrency } from "@/lib/statuses";
 
 const StaffReport = () => {
   const { user, companyId } = useAuth();
@@ -20,7 +20,6 @@ const StaffReport = () => {
       const d = subMonths(now, i);
       opts.push({ value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy", { locale: ptBR }) });
     }
-    // add next month
     const next = addMonths(now, 1);
     opts.push({ value: format(next, "yyyy-MM"), label: format(next, "MMMM yyyy", { locale: ptBR }) });
     return opts;
@@ -35,7 +34,7 @@ const StaffReport = () => {
       if (!user || !companyId) return [];
       const { data, error } = await supabase
         .from("appointments")
-        .select("id, status, amount_cents, category")
+        .select("id, status, price_cents, paid_cents, payment_status, category")
         .eq("company_id", companyId)
         .eq("created_by_user_id", user.id)
         .gte("start_datetime", rangeStart)
@@ -49,28 +48,26 @@ const StaffReport = () => {
   const stats = useMemo(() => {
     const total = appointments.length;
     const scheduled = appointments.filter((a) => a.status === "scheduled").length;
+    const confirmed = appointments.filter((a) => a.status === "confirmed").length;
+    const inProgress = appointments.filter((a) => a.status === "in_progress").length;
     const done = appointments.filter((a) => a.status === "done").length;
     const canceled = appointments.filter((a) => a.status === "canceled").length;
+    const noShow = appointments.filter((a) => a.status === "no_show").length;
     const revenue = appointments
-      .filter((a) => a.status !== "canceled")
-      .reduce((sum, a) => sum + (a.amount_cents || 0), 0);
+      .filter((a) => a.status !== "canceled" && a.status !== "no_show")
+      .reduce((sum, a) => sum + (a.price_cents || 0), 0);
     const avgTicket = done > 0
-      ? appointments.filter((a) => a.status === "done").reduce((s, a) => s + (a.amount_cents || 0), 0) / done
+      ? appointments.filter((a) => a.status === "done").reduce((s, a) => s + (a.price_cents || 0), 0) / done
       : 0;
-    return { total, scheduled, done, canceled, revenue, avgTicket };
+    return { total, scheduled, confirmed, inProgress, done, canceled, noShow, revenue, avgTicket };
   }, [appointments]);
-
-  const formatCurrency = (cents: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="font-heading text-2xl font-bold">Relatório</h1>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             {monthOptions.map((o) => (
               <SelectItem key={o.value} value={o.value} className="capitalize">{o.label}</SelectItem>
@@ -80,19 +77,19 @@ const StaffReport = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total no mês</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{stats.total}</p>
-              <div className="flex gap-2 mt-2">
-                <Badge variant="default" className="text-xs">{stats.scheduled} agendados</Badge>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {stats.scheduled > 0 && <span className="text-xs text-muted-foreground">{stats.scheduled} agendados</span>}
+                {stats.confirmed > 0 && <span className="text-xs text-muted-foreground">• {stats.confirmed} confirmados</span>}
+                {stats.inProgress > 0 && <span className="text-xs text-muted-foreground">• {stats.inProgress} em andamento</span>}
               </div>
             </CardContent>
           </Card>
@@ -116,6 +113,17 @@ const StaffReport = () => {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-destructive">{stats.canceled}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <UserX className="h-4 w-4" /> Não compareceu
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-destructive">{stats.noShow}</p>
             </CardContent>
           </Card>
 

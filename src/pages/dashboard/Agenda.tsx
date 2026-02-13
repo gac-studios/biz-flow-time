@@ -1,24 +1,18 @@
 import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, LayoutList, Columns3, CalendarDays } from "lucide-react";
+import { Plus, Loader2, Columns3, CalendarDays } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import AgendaFilters from "@/components/agenda/AgendaFilters";
 import KanbanBoard from "@/components/agenda/KanbanBoard";
 import AppointmentCalendar, { type CalendarAppointment } from "@/components/agenda/AppointmentCalendar";
 import AppointmentDialog from "@/components/agenda/AppointmentDialog";
 import { downloadCSV } from "@/lib/csv";
-
-const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" }> = {
-  scheduled: { label: "Agendado", variant: "default" },
-  done: { label: "Concluído", variant: "secondary" },
-  canceled: { label: "Cancelado", variant: "destructive" },
-};
+import { statusMap } from "@/lib/statuses";
 
 const Agenda = () => {
   const { companyId, user, role } = useAuth();

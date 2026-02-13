@@ -24,8 +24,11 @@ interface AgendaFiltersProps {
 
 const statuses = [
   { value: "scheduled", label: "Agendado" },
+  { value: "confirmed", label: "Confirmado" },
+  { value: "in_progress", label: "Em andamento" },
   { value: "done", label: "Concluído" },
   { value: "canceled", label: "Cancelado" },
+  { value: "no_show", label: "Não compareceu" },
 ];
 
 const AgendaFilters = ({

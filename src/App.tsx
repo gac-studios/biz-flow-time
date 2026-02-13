@@ -11,15 +11,9 @@ import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import DashboardLayout from "./components/DashboardLayout";
 import StaffLayout from "./components/StaffLayout";
-import DashboardHome from "./pages/dashboard/DashboardHome";
 import Agenda from "./pages/dashboard/Agenda";
-import Clients from "./pages/dashboard/Clients";
-import Services from "./pages/dashboard/Services";
 import Staff from "./pages/dashboard/Staff";
-import Locations from "./pages/dashboard/Locations";
 import SettingsPage from "./pages/dashboard/SettingsPage";
-import PlansPage from "./pages/dashboard/PlansPage";
-import AuditPage from "./pages/dashboard/AuditPage";
 import StaffAppointments from "./pages/staff/StaffAppointments";
 import StaffNewAppointment from "./pages/staff/StaffNewAppointment";
 import PublicBooking from "./pages/PublicBooking";
@@ -48,15 +42,9 @@ const App = () => (
                 <DashboardLayout />
               </ProtectedRoute>
             }>
-              <Route index element={<DashboardHome />} />
-              <Route path="agenda" element={<Agenda />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="services" element={<Services />} />
+              <Route index element={<Agenda />} />
               <Route path="staff" element={<Staff />} />
-              <Route path="locations" element={<Locations />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="plans" element={<PlansPage />} />
-              <Route path="audit" element={<AuditPage />} />
             </Route>
             <Route path="/staff" element={
               <ProtectedRoute allowedRoles={["staff"]}>

@@ -1,79 +1,134 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const mockLogs = [
-  { date: "13/02/2026 09:15", actor: "Carlos Mendes", action: "APPOINTMENT_CREATED", entity: "Agendamento #127", detail: "Cliente: João Silva — Corte" },
-  { date: "13/02/2026 09:10", actor: "Admin (Você)", action: "CLIENT_CREATED", entity: "Cliente #6", detail: "Fernanda Souza cadastrada" },
-  { date: "12/02/2026 17:45", actor: "Ana Souza", action: "APPOINTMENT_UPDATED", entity: "Agendamento #125", detail: "Status: confirmado → concluído" },
-  { date: "12/02/2026 14:20", actor: "Admin (Você)", action: "SERVICE_UPDATED", entity: "Serviço #3", detail: "Preço: R$60 → R$65" },
-  { date: "12/02/2026 10:00", actor: "Carlos Mendes", action: "APPOINTMENT_CANCELED", entity: "Agendamento #122", detail: "Motivo: Cliente não compareceu" },
-  { date: "11/02/2026 16:30", actor: "Admin (Você)", action: "STAFF_CREATED", entity: "Colaborador #2", detail: "Ana Souza convidada como staff" },
-];
-
-const actionColors: Record<string, string> = {
-  APPOINTMENT_CREATED: "default",
-  APPOINTMENT_UPDATED: "secondary",
-  APPOINTMENT_CANCELED: "destructive",
-  CLIENT_CREATED: "default",
-  SERVICE_UPDATED: "secondary",
-  STAFF_CREATED: "default",
+const actionColors: Record<string, "default" | "secondary" | "destructive"> = {
+  APPT_CREATED: "default",
+  APPT_UPDATED: "secondary",
+  APPT_STATUS_CHANGED: "secondary",
+  APPT_DELETED: "destructive",
 };
 
-const AuditPage = () => (
-  <div className="space-y-6 animate-fade-in">
-    <div>
-      <h1 className="font-heading text-2xl font-bold">Auditoria / Histórico</h1>
-      <p className="text-muted-foreground">Registro de todas as ações realizadas no sistema</p>
-    </div>
+const AuditPage = () => {
+  const { companyId } = useAuth();
+  const [search, setSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState("all");
 
-    <div className="flex flex-col sm:flex-row gap-3">
-      <Input placeholder="Buscar por colaborador..." className="max-w-xs" />
-      <Select>
-        <SelectTrigger className="w-48"><SelectValue placeholder="Tipo de ação" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="appointment">Agendamentos</SelectItem>
-          <SelectItem value="client">Clientes</SelectItem>
-          <SelectItem value="service">Serviços</SelectItem>
-          <SelectItem value="staff">Colaboradores</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ["audit-logs", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
 
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data/Hora</TableHead>
-              <TableHead>Colaborador</TableHead>
-              <TableHead>Ação</TableHead>
-              <TableHead className="hidden md:table-cell">Item</TableHead>
-              <TableHead className="hidden lg:table-cell">Detalhes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mockLogs.map((log, i) => (
-              <TableRow key={i}>
-                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{log.date}</TableCell>
-                <TableCell className="font-medium text-sm">{log.actor}</TableCell>
-                <TableCell>
-                  <Badge variant={actionColors[log.action] as "default" | "secondary" | "destructive"}>
-                    {log.action.replace(/_/g, " ")}
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{log.entity}</TableCell>
-                <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{log.detail}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  </div>
-);
+      const userIds = [...new Set(data.map((l) => l.actor_user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", userIds);
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name || p.email]));
+
+      return data.map((l) => ({
+        ...l,
+        actor_name: profileMap.get(l.actor_user_id) || l.actor_user_id.slice(0, 8),
+      }));
+    },
+    enabled: !!companyId,
+  });
+
+  const filtered = logs.filter((l) => {
+    if (actionFilter !== "all" && !l.action.startsWith(actionFilter)) return false;
+    if (search && !l.actor_name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="font-heading text-2xl font-bold">Auditoria</h1>
+        <p className="text-muted-foreground">Registro de ações realizadas nos agendamentos</p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Input placeholder="Buscar por colaborador..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+        <Select value={actionFilter} onValueChange={setActionFilter}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Tipo de ação" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="APPT_CREATED">Criação</SelectItem>
+            <SelectItem value="APPT_UPDATED">Edição</SelectItem>
+            <SelectItem value="APPT_STATUS">Mudança de status</SelectItem>
+            <SelectItem value="APPT_DELETED">Exclusão</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">Nenhum registro encontrado.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Colaborador</TableHead>
+                  <TableHead>Ação</TableHead>
+                  <TableHead className="hidden md:table-cell">Entidade</TableHead>
+                  <TableHead className="hidden lg:table-cell">Detalhes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((log) => {
+                  const detail = log.action === "APPT_STATUS_CHANGED"
+                    ? `${(log.before as any)?.status} → ${(log.after as any)?.status}`
+                    : log.action === "APPT_CREATED"
+                    ? (log.after as any)?.title || ""
+                    : log.action === "APPT_DELETED"
+                    ? (log.before as any)?.title || ""
+                    : (log.after as any)?.title || "";
+                  return (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">{log.actor_name}</TableCell>
+                      <TableCell>
+                        <Badge variant={actionColors[log.action] || "secondary"}>
+                          {log.action.replace(/_/g, " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {log.entity_type} #{log.entity_id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground truncate max-w-[200px]">
+                        {detail}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
 export default AuditPage;

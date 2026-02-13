@@ -61,6 +61,50 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string
+          after: Json | null
+          before: Json | null
+          company_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          after?: Json | null
+          before?: Json | null
+          company_id: string
+          created_at?: string
+          entity_id: string
+          entity_type?: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          after?: Json | null
+          before?: Json | null
+          company_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           city: string | null

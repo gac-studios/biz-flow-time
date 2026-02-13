@@ -3,16 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+
+type LoginMode = "admin" | "staff";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { role } = useAuth();
+  const [mode, setMode] = useState<LoginMode>("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,6 @@ const Login = () => {
       return;
     }
 
-    // Fetch membership to determine redirect
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: membership } = await supabase
@@ -40,9 +41,28 @@ const Login = () => {
         .limit(1)
         .single();
 
-      if (membership?.role === "staff") {
+      const userRole = membership?.role;
+
+      if (mode === "admin" && userRole === "staff") {
+        await supabase.auth.signOut();
+        toast({
+          title: "Acesso negado",
+          description: "Esta conta é de colaborador. Entre na aba Colaborador.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (mode === "staff" && userRole === "owner") {
+        toast({
+          title: "Conta de administrador",
+          description: "Você é administrador. Redirecionando ao painel.",
+        });
+        navigate("/dashboard");
+      } else if (userRole === "staff") {
         navigate("/staff");
-      } else if (membership?.role === "owner") {
+      } else if (userRole === "owner") {
         navigate("/dashboard");
       } else {
         navigate("/onboarding");
@@ -50,6 +70,11 @@ const Login = () => {
     }
     setLoading(false);
   };
+
+  const helperText =
+    mode === "admin"
+      ? "Acesso completo ao painel da empresa."
+      : "Acesso apenas para marcar horários e ver os seus agendamentos.";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/30 px-4">
@@ -59,16 +84,33 @@ const Login = () => {
             <Calendar className="h-6 w-6" /> AgendaPro
           </Link>
           <CardTitle className="font-heading text-2xl">Entrar na sua conta</CardTitle>
-          <CardDescription>Insira suas credenciais para acessar o painel</CardDescription>
+          <CardDescription>Selecione seu tipo de acesso</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-5">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as LoginMode)} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="admin">Administrador</TabsTrigger>
+              <TabsTrigger value="staff">Colaborador</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <p className="text-xs text-center text-muted-foreground -mt-2">{helperText}</p>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => toast({ title: "Em breve", description: "Funcionalidade de recuperação de senha será implementada." })}
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
@@ -76,7 +118,7 @@ const Login = () => {
               Entrar
             </Button>
           </form>
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-sm text-muted-foreground">
             Não tem conta?{" "}
             <Link to="/signup" className="text-primary font-medium hover:underline">Criar conta</Link>
           </p>

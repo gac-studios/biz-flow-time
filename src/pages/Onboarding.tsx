@@ -5,17 +5,51 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, ChevronRight, ChevronLeft } from "lucide-react";
+import { Calendar, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const segments = ["Barbearia", "Estética", "Clínica", "Consultório", "Transporte", "Academia", "Outro"];
 const timezones = ["America/Sao_Paulo", "America/Manaus", "America/Bahia", "America/Fortaleza", "America/Recife"];
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [data, setData] = useState({
     companyName: "", segment: "", phone: "", city: "", state: "", timezone: "America/Sao_Paulo", slug: "",
   });
+
+  const handleCreate = async () => {
+    if (!user) {
+      toast({ title: "Erro", description: "Você precisa estar logado.", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    const { data: result, error } = await supabase.rpc("create_company_with_owner", {
+      _name: data.companyName,
+      _slug: data.slug || null,
+      _phone: data.phone || null,
+      _segment: data.segment || null,
+      _city: data.city || null,
+      _state: data.state || null,
+      _timezone: data.timezone,
+    });
+
+    if (error) {
+      toast({ title: "Erro ao criar empresa", description: error.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    toast({ title: "Empresa criada!", description: "Bem-vindo ao AgendaPro." });
+    // Small delay to let auth context refresh membership
+    setTimeout(() => navigate("/dashboard"), 500);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/30 px-4 py-12">
@@ -98,7 +132,10 @@ const Onboarding = () => {
             {step < 2 ? (
               <Button onClick={() => setStep(step + 1)}>Próximo <ChevronRight className="ml-1 h-4 w-4" /></Button>
             ) : (
-              <Button onClick={() => navigate("/dashboard")}>Criar empresa <ChevronRight className="ml-1 h-4 w-4" /></Button>
+              <Button onClick={handleCreate} disabled={loading || !data.companyName}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Criar empresa <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
             )}
           </div>
         </CardContent>

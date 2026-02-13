@@ -14,7 +14,7 @@ type LoginMode = "admin" | "staff";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [mode, setMode] = useState<LoginMode>("admin");
+  const [mode, setMode] = useState<LoginMode>("staff");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -89,8 +89,8 @@ const Login = () => {
         <CardContent className="space-y-5">
           <Tabs value={mode} onValueChange={(v) => setMode(v as LoginMode)} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="admin">Administrador</TabsTrigger>
               <TabsTrigger value="staff">Colaborador</TabsTrigger>
+              <TabsTrigger value="admin">Administrador</TabsTrigger>
             </TabsList>
           </Tabs>
           <p className="text-xs text-center text-muted-foreground -mt-2">{helperText}</p>

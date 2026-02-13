@@ -14,6 +14,8 @@ import StaffLayout from "./components/StaffLayout";
 import Agenda from "./pages/dashboard/Agenda";
 import Staff from "./pages/dashboard/Staff";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import ProductivityPage from "./pages/dashboard/ProductivityPage";
+import AuditPage from "./pages/dashboard/AuditPage";
 import StaffAppointments from "./pages/staff/StaffAppointments";
 import StaffNewAppointment from "./pages/staff/StaffNewAppointment";
 import PublicBooking from "./pages/PublicBooking";
@@ -44,6 +46,8 @@ const App = () => (
             }>
               <Route index element={<Agenda />} />
               <Route path="staff" element={<Staff />} />
+              <Route path="productivity" element={<ProductivityPage />} />
+              <Route path="audit" element={<AuditPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="/staff" element={

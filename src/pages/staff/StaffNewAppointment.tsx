@@ -25,6 +25,22 @@ const StaffNewAppointment = () => {
     const startDatetime = `${form.date}T${form.startTime}:00`;
     const endDatetime = `${form.date}T${form.endTime}:00`;
 
+    // Frontend conflict check
+    const { data: overlaps } = await supabase
+      .from("appointments")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("created_by_user_id", user.id)
+      .neq("status", "canceled")
+      .lt("start_datetime", endDatetime)
+      .gt("end_datetime", startDatetime);
+
+    if (overlaps && overlaps.length > 0) {
+      toast({ title: "Conflito de horário", description: "Já existe um agendamento nesse período.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.from("appointments").insert({
       company_id: companyId,
       created_by_user_id: user.id,

@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import DashboardLayout from "./components/DashboardLayout";
+import StaffLayout from "./components/StaffLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import Agenda from "./pages/dashboard/Agenda";
 import Clients from "./pages/dashboard/Clients";
@@ -19,6 +20,8 @@ import Locations from "./pages/dashboard/Locations";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 import PlansPage from "./pages/dashboard/PlansPage";
 import AuditPage from "./pages/dashboard/AuditPage";
+import StaffAppointments from "./pages/staff/StaffAppointments";
+import StaffNewAppointment from "./pages/staff/StaffNewAppointment";
 import PublicBooking from "./pages/PublicBooking";
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +57,14 @@ const App = () => (
               <Route path="settings" element={<SettingsPage />} />
               <Route path="plans" element={<PlansPage />} />
               <Route path="audit" element={<AuditPage />} />
+            </Route>
+            <Route path="/staff" element={
+              <ProtectedRoute allowedRoles={["staff"]}>
+                <StaffLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<StaffAppointments />} />
+              <Route path="new" element={<StaffNewAppointment />} />
             </Route>
             <Route path="/c/:slug" element={<PublicBooking />} />
             <Route path="*" element={<NotFound />} />

@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
-import { Calendar, UserCog, Settings, Menu, LogOut, BarChart3, ClipboardList } from "lucide-react";
+import { Calendar, UserCog, Settings, Menu, LogOut, BarChart3, ClipboardList, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { path: "/dashboard", label: "Agenda", icon: Calendar },
+  { path: "/dashboard/clients", label: "Clientes", icon: Users },
   { path: "/dashboard/staff", label: "Colaboradores", icon: UserCog },
   { path: "/dashboard/productivity", label: "Produtividade", icon: BarChart3 },
   { path: "/dashboard/audit", label: "Auditoria", icon: ClipboardList },

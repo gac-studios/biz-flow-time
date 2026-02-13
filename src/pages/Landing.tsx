@@ -39,10 +39,10 @@ const plans = [
 
 const faqs = [
   { q: "Posso testar antes de assinar?", a: "Sim! Oferecemos 7 dias de trial gratuito em todos os planos, sem necessidade de cartão de crédito." },
-  { q: "Funciona para qualquer tipo de negócio?", a: "Sim! O AgendaPro é multi-segmento: barbearias, clínicas, estéticas, transporte, consultórios e muito mais." },
+  { q: "Funciona para qualquer tipo de negócio?", a: "Sim! O Agendex é multi-segmento: barbearias, clínicas, estéticas, transporte, consultórios e muito mais." },
   { q: "Meus dados estão seguros?", a: "Absolutamente. Usamos criptografia, isolamento por empresa (multi-tenant) e controle de acesso rigoroso." },
   { q: "Posso ter mais de uma unidade?", a: "Sim! A partir do plano Intermediário você pode gerenciar múltiplos locais." },
-  { q: "Como funciona o agendamento público?", a: "Cada empresa recebe um link exclusivo (ex: agendapro.com/c/sua-empresa) que seus clientes podem acessar para agendar online." },
+  { q: "Como funciona o agendamento público?", a: "Cada empresa recebe um link exclusivo (ex: agendex.com/c/sua-empresa) que seus clientes podem acessar para agendar online." },
 ];
 
 const Landing = () => {
@@ -53,7 +53,7 @@ const Landing = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <Link to="/" className="font-heading text-xl font-bold text-primary flex items-center gap-2">
             <Calendar className="h-6 w-6" />
-            AgendaPro
+            Agendex
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Recursos</a>
@@ -182,7 +182,7 @@ const Landing = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              { name: "Carlos Silva", role: "Barbearia Premium", text: "O AgendaPro transformou a gestão da minha barbearia. Meus clientes adoram agendar online!" },
+              { name: "Carlos Silva", role: "Barbearia Premium", text: "O Agendex transformou a gestão da minha barbearia. Meus clientes adoram agendar online!" },
               { name: "Ana Santos", role: "Clínica Estética Bella", text: "Fácil de usar e super completo. Reduzi 80% das faltas com as confirmações automáticas." },
               { name: "Pedro Costa", role: "TransVip Transfers", text: "Gerenciar agendamentos de transporte nunca foi tão simples. Recomendo demais!" },
             ].map((t) => (
@@ -236,14 +236,14 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 font-heading font-bold text-primary">
-              <Calendar className="h-5 w-5" /> AgendaPro
+              <Calendar className="h-5 w-5" /> Agendex
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Termos</a>
               <a href="#" className="hover:text-foreground transition-colors">Privacidade</a>
               <a href="#" className="hover:text-foreground transition-colors">Suporte</a>
             </div>
-            <p className="text-sm text-muted-foreground">© 2026 AgendaPro. Todos os direitos reservados.</p>
+            <p className="text-sm text-muted-foreground">© 2026 Agendex. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>

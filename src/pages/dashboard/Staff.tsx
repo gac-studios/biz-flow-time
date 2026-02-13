@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Key } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ interface StaffMember {
 }
 
 const Staff = () => {
-  const { companyId, session } = useAuth();
+  const { companyId, session, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -36,6 +36,11 @@ const Staff = () => {
   const [editName, setEditName] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [tempPassword, setTempPassword] = useState("");
+
+  // Reset Password State
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resettingMember, setResettingMember] = useState<StaffMember | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["staff-members", companyId],
@@ -149,6 +154,55 @@ const Staff = () => {
     setEditOpen(false);
   };
 
+  const handleResetPasswordClick = (member: StaffMember) => {
+    if (member.user_id === user?.id) {
+      toast({
+        title: "Ação não permitida",
+        description: "Você não pode redefinir sua senha por aqui. Vá em 'Minha Conta'.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setResettingMember(member);
+    setResetDialogOpen(true);
+  };
+
+  const confirmResetPassword = async () => {
+    if (!resettingMember?.email || !companyId || !user) return;
+    setResetting(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resettingMember.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      await supabase.from("audit_logs").insert({
+        action: "PASSWORD_RESET_EMAIL_SENT",
+        company_id: companyId,
+        actor_user_id: user.id,
+        entity_type: "user",
+        entity_id: resettingMember.user_id,
+        after: { target_email: resettingMember.email }
+      });
+
+      toast({
+        title: "E-mail enviado",
+        description: `Link de redefinição enviado para ${resettingMember.email}`
+      });
+      setResetDialogOpen(false);
+    } catch (err: any) {
+      toast({
+        title: "Erro ao enviar",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -241,7 +295,7 @@ const Staff = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-              {members.map((m) => (
+                {members.map((m) => (
                   <TableRow key={m.membership_id}>
                     <TableCell className="font-medium">
                       {m.full_name || "—"}
@@ -258,6 +312,9 @@ const Staff = () => {
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(m)}>
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleResetPasswordClick(m)} title="Redefinir senha">
+                          <Key className="h-4 w-4 text-primary" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -315,6 +372,25 @@ const Staff = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reset Password Confirmation Dialog */}
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Redefinir senha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso enviará um e-mail para <strong>{resettingMember?.email}</strong> com um link para criar uma nova senha.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Cancelar</AlertDialogCancel>
+            <Button onClick={confirmResetPassword} disabled={resetting}>
+              {resetting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Enviar e-mail
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

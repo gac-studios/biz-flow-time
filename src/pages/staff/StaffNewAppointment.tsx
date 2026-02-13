@@ -1,100 +1,50 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Check } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import AppointmentDialog from "@/components/agenda/AppointmentDialog";
 
 const StaffNewAppointment = () => {
-  const { user, companyId } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ title: "", date: "", startTime: "", endTime: "", notes: "" });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [prefillStart, setPrefillStart] = useState<Date | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !companyId || !form.title || !form.date || !form.startTime || !form.endTime) return;
-
-    setLoading(true);
-    const startDatetime = `${form.date}T${form.startTime}:00`;
-    const endDatetime = `${form.date}T${form.endTime}:00`;
-
-    // Frontend conflict check
-    const { data: overlaps } = await supabase
-      .from("appointments")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("created_by_user_id", user.id)
-      .neq("status", "canceled")
-      .lt("start_datetime", endDatetime)
-      .gt("end_datetime", startDatetime);
-
-    if (overlaps && overlaps.length > 0) {
-      toast({ title: "Conflito de horário", description: "Já existe um agendamento nesse período.", variant: "destructive" });
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.from("appointments").insert({
-      company_id: companyId,
-      created_by_user_id: user.id,
-      title: form.title,
-      start_datetime: startDatetime,
-      end_datetime: endDatetime,
-      notes: form.notes || null,
-    });
-
-    setLoading(false);
-    if (error) {
-      toast({ title: "Erro ao criar agendamento", description: error.message, variant: "destructive" });
-      return;
-    }
-
-    toast({ title: "Agendamento criado!" });
-    navigate("/staff");
+  const handleOpen = () => {
+    // Round to next 30 min slot
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const rounded = new Date(now);
+    rounded.setMinutes(minutes > 30 ? 60 : 30, 0, 0);
+    setPrefillStart(rounded);
+    setDialogOpen(true);
   };
 
   return (
-    <div className="max-w-lg mx-auto animate-fade-in">
-      <h1 className="font-heading text-2xl font-bold mb-6">Marcar Horário</h1>
+    <div className="max-w-lg mx-auto animate-fade-in space-y-6">
+      <h1 className="font-heading text-2xl font-bold">Marcar Horário</h1>
+
       <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Título <span className="text-destructive">*</span></Label>
-              <Input placeholder="Ex: Consulta, Corte, Reunião…" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-            </div>
-            <div className="space-y-2">
-              <Label>Data <span className="text-destructive">*</span></Label>
-              <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Início <span className="text-destructive">*</span></Label>
-                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Fim <span className="text-destructive">*</span></Label>
-                <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} required />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea placeholder="Notas opcionais…" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-              Criar agendamento
-            </Button>
-          </form>
+        <CardContent className="pt-6 flex flex-col items-center justify-center py-12 gap-4">
+          <p className="text-muted-foreground text-center">
+            Clique abaixo para criar um novo agendamento.
+          </p>
+          <Button onClick={handleOpen} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Novo agendamento
+          </Button>
         </CardContent>
       </Card>
+
+      <AppointmentDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        appointment={null}
+        prefillStart={prefillStart}
+        mode="staff"
+        queryKeyPrefix="staff-appointments"
+        readOnly={false}
+        onSuccess={() => navigate("/staff")}
+      />
     </div>
   );
 };

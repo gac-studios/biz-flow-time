@@ -18,7 +18,7 @@ const SidebarContent = ({ pathname, onNavigate, onLogout }: { pathname: string; 
   <div className="flex flex-col h-full">
     <div className="p-6">
       <Link to="/dashboard" className="font-heading text-xl font-bold text-sidebar-primary flex items-center gap-2">
-        <Calendar className="h-6 w-6" /> AgendaPro
+        <Calendar className="h-6 w-6" /> Agendex
       </Link>
     </div>
     <nav className="flex-1 px-3 space-y-1">
@@ -29,9 +29,8 @@ const SidebarContent = ({ pathname, onNavigate, onLogout }: { pathname: string; 
             key={item.path}
             to={item.path}
             onClick={onNavigate}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
           >
             <item.icon className="h-5 w-5" />
             {item.label}

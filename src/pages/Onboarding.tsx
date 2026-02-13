@@ -101,7 +101,7 @@ const Onboarding = () => {
       }, { onConflict: "user_id" });
     }
 
-    toast({ title: "Empresa criada!", description: "Bem-vindo ao AgendaPro." });
+    toast({ title: "Empresa criada!", description: "Bem-vindo ao Agendex." });
     navigate("/dashboard", { replace: true });
   };
 
@@ -110,7 +110,7 @@ const Onboarding = () => {
       <Card className="w-full max-w-lg animate-fade-in">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 font-heading text-xl font-bold text-primary mb-2">
-            <Calendar className="h-6 w-6" /> AgendaPro
+            <Calendar className="h-6 w-6" /> Agendex
           </div>
           <CardTitle className="font-heading text-2xl">Configure sua empresa</CardTitle>
           <CardDescription>Passo {step + 1} de 3</CardDescription>
@@ -204,7 +204,7 @@ const Onboarding = () => {
               <div className="space-y-2">
                 <Label>Slug (link público)</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">agendapro.com/c/</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">agendex.com/c/</span>
                   <Input placeholder="minha-empresa" value={data.slug} onChange={(e) => setData({ ...data, slug: e.target.value.toLowerCase().replace(/\s/g, "-") })} />
                 </div>
               </div>

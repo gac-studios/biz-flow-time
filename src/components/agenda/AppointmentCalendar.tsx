@@ -17,6 +17,7 @@ export interface CalendarAppointment {
   currency?: string;
   client_id?: string | null;
   category?: string | null;
+  clients?: { name: string } | null;
 }
 
 interface AppointmentCalendarProps {
@@ -29,8 +30,11 @@ interface AppointmentCalendarProps {
 
 const statusColors: Record<string, { bg: string; border: string; text: string }> = {
   scheduled: { bg: "hsl(217 91% 60% / 0.15)", border: "hsl(217 91% 60%)", text: "hsl(217 91% 60%)" },
+  confirmed: { bg: "hsl(250 91% 60% / 0.15)", border: "hsl(250 91% 60%)", text: "hsl(250 91% 60%)" },
+  in_progress: { bg: "hsl(45 91% 60% / 0.15)", border: "hsl(45 91% 60%)", text: "hsl(45 91% 40%)" },
   done: { bg: "hsl(152 69% 40% / 0.15)", border: "hsl(152 69% 40%)", text: "hsl(152 69% 40%)" },
   canceled: { bg: "hsl(0 84% 60% / 0.15)", border: "hsl(0 84% 60%)", text: "hsl(0 84% 60%)" },
+  no_show: { bg: "hsl(0 84% 60% / 0.25)", border: "hsl(0 84% 60%)", text: "hsl(0 84% 60%)" },
 };
 
 const AppointmentCalendar = ({
@@ -58,14 +62,18 @@ const AppointmentCalendar = ({
 
   const renderEventContent = (eventInfo: any) => {
     const appt = eventInfo.event.extendedProps.appointment as CalendarAppointment;
-    const timeText = eventInfo.timeText;
     return (
       <div className="leading-tight px-0.5 overflow-hidden">
-        <div className="text-[0.72rem] font-medium truncate">
-          {timeText} {appt.title}
+        <div className="text-[0.7rem] font-medium truncate">
+          {eventInfo.timeText} {appt.title}
         </div>
+        {appt.clients?.name && (
+          <div className="text-[0.65rem] font-bold opacity-90 truncate">
+            {appt.clients.name}
+          </div>
+        )}
         {appt.creator_name && (
-          <div className="text-[0.65rem] font-bold opacity-80 truncate">
+          <div className="text-[0.6rem] opacity-70 truncate">
             {appt.creator_name}
           </div>
         )}

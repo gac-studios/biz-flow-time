@@ -15,7 +15,7 @@ const StaffSidebar = ({ pathname, onNavigate, onLogout }: { pathname: string; on
   <div className="flex flex-col h-full">
     <div className="p-6">
       <Link to="/staff" className="font-heading text-xl font-bold text-sidebar-primary flex items-center gap-2">
-        <Calendar className="h-6 w-6" /> AgendaPro
+        <Calendar className="h-6 w-6" /> Agendex
       </Link>
       <p className="text-xs text-sidebar-foreground/60 mt-1">Painel do Colaborador</p>
     </div>
@@ -27,9 +27,8 @@ const StaffSidebar = ({ pathname, onNavigate, onLogout }: { pathname: string; on
             key={item.path}
             to={item.path}
             onClick={onNavigate}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
           >
             <item.icon className="h-5 w-5" />
             {item.label}

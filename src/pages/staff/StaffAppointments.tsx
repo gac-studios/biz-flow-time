@@ -22,14 +22,18 @@ const StaffAppointments = () => {
       if (!user || !companyId) return [];
       const { data, error } = await supabase
         .from("appointments")
-        .select("*")
+        .select("*, clients(name)")
         .eq("company_id", companyId)
         .eq("created_by_user_id", user.id)
         .gte("start_datetime", rangeStart.toISOString())
         .lte("start_datetime", rangeEnd.toISOString())
         .order("start_datetime", { ascending: true });
       if (error) throw error;
-      return (data || []).map((a) => ({ ...a, creator_name: undefined })) as CalendarAppointment[];
+      return (data || []).map((a) => ({
+        ...a,
+        creator_name: undefined,
+        clients: a.clients // ensure this is passed through
+      })) as unknown as CalendarAppointment[];
     },
     enabled: !!user && !!companyId,
   });
@@ -64,7 +68,6 @@ const StaffAppointments = () => {
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-bold">Minha Agenda</h1>
-        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> Novo</Button>
       </div>
 
       {isLoading ? (
@@ -72,7 +75,7 @@ const StaffAppointments = () => {
       ) : (
         <AppointmentCalendar
           appointments={appointments}
-          onDateSelect={handleDateSelect}
+          onDateSelect={() => { }}
           onEventClick={handleEventClick}
           onRangeChange={handleRangeChange}
         />
@@ -86,6 +89,7 @@ const StaffAppointments = () => {
         prefillEnd={prefillEnd}
         mode="staff"
         queryKeyPrefix="staff-appointments"
+        readOnly={true}
       />
     </div>
   );

@@ -22,6 +22,7 @@ import StaffReport from "./pages/staff/StaffReport";
 import Clients from "./pages/dashboard/Clients";
 import PublicBooking from "./pages/PublicBooking";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={
               <ProtectedRoute requireRole={false}>
                 <Onboarding />

@@ -81,7 +81,7 @@ const Login = () => {
       <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="text-center">
           <Link to="/" className="flex items-center justify-center gap-2 font-heading text-xl font-bold text-primary mb-2">
-            <Calendar className="h-6 w-6" /> AgendaPro
+            <Calendar className="h-6 w-6" /> Agendex
           </Link>
           <CardTitle className="font-heading text-2xl">Entrar na sua conta</CardTitle>
           <CardDescription>Selecione seu tipo de acesso</CardDescription>

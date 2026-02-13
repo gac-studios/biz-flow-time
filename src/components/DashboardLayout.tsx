@@ -1,20 +1,14 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, Scissors, UserCog, MapPin, Settings, CreditCard, FileText, Menu, LogOut } from "lucide-react";
+import { Calendar, UserCog, Settings, Menu, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/dashboard/agenda", label: "Agenda", icon: Calendar },
-  { path: "/dashboard/clients", label: "Clientes", icon: Users },
-  { path: "/dashboard/services", label: "Serviços", icon: Scissors },
+  { path: "/dashboard", label: "Agenda", icon: Calendar },
   { path: "/dashboard/staff", label: "Colaboradores", icon: UserCog },
-  { path: "/dashboard/locations", label: "Locais", icon: MapPin },
   { path: "/dashboard/settings", label: "Configurações", icon: Settings },
-  { path: "/dashboard/plans", label: "Planos", icon: CreditCard },
-  { path: "/dashboard/audit", label: "Auditoria", icon: FileText },
 ];
 
 const SidebarContent = ({ pathname, onNavigate, onLogout }: { pathname: string; onNavigate?: () => void; onLogout: () => void }) => (

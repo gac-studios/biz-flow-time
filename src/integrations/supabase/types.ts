@@ -24,6 +24,7 @@ export type Database = {
           notes: string | null
           start_datetime: string
           status: string
+          title: string
           updated_at: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           notes?: string | null
           start_datetime: string
           status?: string
+          title?: string
           updated_at?: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           notes?: string | null
           start_datetime?: string
           status?: string
+          title?: string
           updated_at?: string
         }
         Relationships: [

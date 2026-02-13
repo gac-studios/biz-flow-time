@@ -93,6 +93,15 @@ const Onboarding = () => {
       return;
     }
 
+    // Create owner profile
+    if (user) {
+      await supabase.from("profiles").upsert({
+        user_id: user.id,
+        full_name: user.user_metadata?.full_name || data.companyName,
+        email: user.email || "",
+      }, { onConflict: "user_id" });
+    }
+
     toast({ title: "Empresa criada!", description: "Bem-vindo ao AgendaPro." });
     navigate("/dashboard", { replace: true });
   };

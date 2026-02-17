@@ -93,7 +93,8 @@ Deno.serve(async (req) => {
       user_id: userId,
       temp_password: tempPassword,
     });
-  } catch (err) {
-    return json({ error: err.message || "Internal server error" }, 500);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return json({ error: message }, 500);
   }
 });
